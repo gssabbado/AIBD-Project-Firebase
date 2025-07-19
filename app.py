@@ -1,63 +1,55 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-from datetime import datetime
-import requests
 
-# Inicializa o Firebase
+# Inicializa Firebase
 if not firebase_admin._apps:
     cred = credentials.Certificate("key.json")
     firebase_admin.initialize_app(cred)
 
-# Conexão com o Firestore
+# Conecta com o Firestore
 db = firestore.client()
 
-# Função para salvar entrada
-def save_diary_entry(date, work_done, notes):
-    doc_ref = db.collection("diarios").document()
-    doc_ref.set({
-        "data": str(date),
-        "atividades_realizadas": work_done,
-        "observacoes": notes,
-        "timestamp": datetime.now()
-    })
+# Função para listar as coleções disponíveis (manualmente ou dinamicamente)
+def get_collections():
+    # Você pode obter dinamicamente com:
+    # return [col.id for col in db.collections()]
+    # Ou definir manualmente:
+    return [
+        "Aluguel", "Cadastro", "Consumo", "Contrato", "Diario", "Empresa",
+        "Equipamentos", "Mao_de_Obra", "Materiais", "Obra",
+        "Plano_de_Aproveitamento", "Proprietario", "Recebimento",
+        "Residuos", "Trabalho", "Uso"
+    ]
 
-# Função para recuperar entradas
-def get_diary_entries():
-    docs = db.collection("diarios").order_by("data").stream()
-    entries = []
-    for doc in docs:
-        data = doc.to_dict()
-        entries.append(data)
-    return entries
+# Função para buscar documentos de uma coleção
+def get_documents_from_collection(collection_name):
+    try:
+        docs = db.collection(collection_name).stream()
+        return [doc.to_dict() | {"_id": doc.id} for doc in docs]
+    except Exception as e:
+        st.error(f"Erro ao buscar documentos: {e}")
+        return []
 
-# Interface
-st.title("Diário de Obra")
+# UI
+st.set_page_config(page_title="📁 Visualizador Firestore", layout="wide")
+st.title("📁 Visualizador de Dados do Firestore")
 
-# Formulário de entrada
-st.header("Nova entrada")
-with st.form("diary_form"):
-    date = st.date_input("Data da Atividade")
-    work_done = st.text_area("Atividades Realizadas")
-    notes = st.text_area("Observações")
-    submitted = st.form_submit_button("Salvar Entrada")
+# Seleção de coleção
+collections = get_collections()
+selected_collection = st.selectbox("Escolha uma coleção para visualizar os dados:", collections)
 
-    if submitted:
-        save_diary_entry(date, work_done, notes)
-        st.success("Entrada salva com sucesso!")
+# Busca e exibição dos dados
+if selected_collection:
+    documents = get_documents_from_collection(selected_collection)
 
-# Listagem de entradas
-st.header("Entradas salvas")
+    st.subheader(f"📄 {len(documents)} documentos encontrados em `{selected_collection}`")
 
-try:
-    entries = get_diary_entries()
-    if entries:
-        for e in entries:
-            st.subheader(f"{e['data']}")
-            st.markdown(f"**Atividades:** {e['atividades_realizadas']}")
-            st.markdown(f"**Observações:** {e['observacoes']}")
-            st.markdown("---")
+    if documents:
+        for doc in documents:
+            with st.expander(f"🧾 Documento ID: {doc['_id']}"):
+                for key, value in doc.items():
+                    if key != "_id":
+                        st.markdown(f"**{key}:** {value}")
     else:
-        st.info("Nenhuma entrada registrada ainda.")
-except Exception as e:
-    st.error(f"Erro ao carregar entradas: {e}")
+        st.info("Nenhum documento encontrado nesta coleção.")
