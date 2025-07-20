@@ -48,7 +48,7 @@ original_data = {
         {'CodEmpresa': 11, 'CNPJ': '78901234567890'},
         {'CodEmpresa': 12, 'CNPJ': '23456789012345'}
     ],
-    'Mao_de_Obra': [
+    'Mão de Obra': [
         {'CodFuncionario': 1, 'Foto': None, 'Salario': 10000.00, 'RG': '123456789', 'CPF': '12300000800', 'Cargo': 'Engenheiro', 'Nome': 'Robson Neves'},
         {'CodFuncionario': 2, 'Foto': None, 'Salario': 8000.00, 'RG': '123456788', 'CPF': '32100000800', 'Cargo': 'Eletricista', 'Nome': 'Joana Nunes'},
         {'CodFuncionario': 3, 'Foto': None, 'Salario': 25000.00, 'RG': '123456787', 'CPF': '45600000800', 'Cargo': 'Engenheiro Civil', 'Nome': 'Johann Strauss'},
@@ -76,7 +76,7 @@ original_data = {
         {'CodObra': 11, 'Endereco': 'Rua E, 112', 'Fotos': 'caminho_foto_obra11.jpg', 'Data_inicio': datetime(2021, 5, 30), 'Data_previsao': datetime(2024, 11, 30)},
         {'CodObra': 12, 'Endereco': 'Avenida F, 213', 'Fotos': 'caminho_foto_obra12.jpg', 'Data_inicio': datetime(2023, 6, 5), 'Data_previsao': datetime(2026, 12, 5)}
     ],
-    'Proprietario': [
+    'Proprietário': [
         {'CodProp': 1, 'NomeProp': 'Gideon Graves', 'CPF': '12355500812'},
         {'CodProp': 2, 'NomeProp': 'Ken Masters', 'CPF': '32306578450'},
         {'CodProp': 3, 'NomeProp': 'Sypha Belnades', 'CPF': '82468675806'},
@@ -90,7 +90,7 @@ original_data = {
         {'CodProp': 11, 'NomeProp': 'Fernando Lima', 'CPF': '43210987654'},
         {'CodProp': 12, 'NomeProp': 'Camila Santos', 'CPF': '21098765432'}
     ],
-    'Diario': [
+    'Diário': [
         {'CodDiario': 1, 'Endereco': 'Rua Alexandre de Matos', 'Fotos': None, 'Obs_Geral': 'Construção em Andamento', 'Obs_Func': 'Eletricista terminou a fiação', 'Data': datetime(2026, 10, 12, 19, 0, 0), 'Clima': 'Parcialmente Nublado'},
         {'CodDiario': 2, 'Endereco': 'Rua Mitocôndria Azul', 'Fotos': None, 'Obs_Geral': 'Acidente com o Engenheiro', 'Obs_Func': 'Engenheiro conferiu se vai ser necessário levantar a viga do salão, um pedaço de madeira caiu em cima dele.', 'Data': datetime(2027, 1, 19, 17, 0, 0), 'Clima': 'Ensolarado'},
         {'CodDiario': 3, 'Endereco': 'Avenida Trobson Azambuja', 'Fotos': None, 'Obs_Geral': 'Caminhões do concreto chegaram atrasados.', 'Obs_Func': 'Arquiteto conferiu a planta da obra.', 'Data': datetime(2024, 3, 6, 16, 30, 0), 'Clima': 'Chuva Fraca'},
@@ -132,7 +132,7 @@ original_data = {
         {'CodMaterial': 11, 'Tipo': 'Telhas', 'Quantidade': 100, 'Unidade': 'm3', 'Custo': 300.00},
         {'CodMaterial': 12, 'Tipo': 'Vidros', 'Quantidade': 30, 'Unidade': 'm', 'Custo': 400.00}
     ],
-    'Plano_de_Aproveitamento': [
+    'Plano de Aproveitamento': [
         {'CodPlano': 1, 'Descricao': 'Plano A: resíduo C - reciclados e/ou recuperação', 'Emp_Empresa': 1},
         {'CodPlano': 2, 'Descricao': 'Plano B: resíduo A - reciclagem e/ou reaproveitamento', 'Emp_Empresa': 2},
         {'CodPlano': 3, 'Descricao': 'Plano C: resíduo A - reciclagem e/ou reaproveitamento', 'Emp_Empresa': 3},
@@ -146,7 +146,7 @@ original_data = {
         {'CodPlano': 11, 'Descricao': 'Plano K: resíduo A - reciclagem e/ou reaproveitamento', 'Emp_Empresa': 11},
         {'CodPlano': 12, 'Descricao': 'Plano L: resíduo B - reciclagem e/ou reaproveitamento', 'Emp_Empresa': 12}
     ],
-    'Residuos': [
+    'Resíduos': [
         {'Classe': 'Classe C', 'PA_CodPlano': 1},
         {'Classe': 'Classe A', 'PA_CodPlano': 2},
         {'Classe': 'Classe A', 'PA_CodPlano': 3},
@@ -270,21 +270,21 @@ def upload_data_to_firestore(data_dict, db_client):
                 doc_id = None
                 if collection_name == 'Empresa':
                     doc_id = str(doc['CodEmpresa'])
-                elif collection_name == 'Mao_de_Obra':
+                elif collection_name == 'Mão de Obra':
                     doc_id = str(doc['CodFuncionario'])
                 elif collection_name == 'Obra':
                     doc_id = str(doc['CodObra'])
-                elif collection_name == 'Proprietario':
+                elif collection_name == 'Proprietário':
                     doc_id = str(doc['CodProp'])
-                elif collection_name == 'Diario':
+                elif collection_name == 'Diário':
                     doc_id = str(doc['CodDiario'])
                 elif collection_name == 'Equipamentos':
                     doc_id = str(doc['CodEquipamento'])
                 elif collection_name == 'Materiais':
                     doc_id = str(doc['CodMaterial'])
-                elif collection_name == 'Plano_de_Aproveitamento':
+                elif collection_name == 'Plano de Aproveitamento':
                     doc_id = str(doc['CodPlano'])
-                elif collection_name == 'Residuos':
+                elif collection_name == 'Resíduos':
                     # Chave composta (Classe, PA_CodPlano) - concatena para formar o ID
                     doc_id = f"{doc['Classe']}_{doc['PA_CodPlano']}"
                 elif collection_name == 'Cadastro':
@@ -333,7 +333,7 @@ def example_queries(db):
     for doc in docs:
         print(doc.to_dict())
     # Mao_de_Obra Salario > 5000 ORDER BY Nome ASC
-    docs = db.collection("Mao_de_Obra") \
+    docs = db.collection("Mão de Obra") \
         .where(filter=FieldFilter("Salario", ">", 5000)) \
         .order_by("Nome") \
         .stream()
@@ -351,7 +351,7 @@ def example_queries(db):
         .where(filter=FieldFilter("Data_previsao", ">", datetime(2025, 1, 1))) \
         .stream()
     for doc in docs:
-        print(doc.to_dict().get("Endereco"))
+        print(doc.to_dict().get("Endereço"))
     # Materiais GROUP BY Unidade
     docs = db.collection("Materiais").stream()
     unidades = [doc.to_dict()['Unidade'] for doc in docs]
