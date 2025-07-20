@@ -3,13 +3,22 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
 
-# Inicializa Firebase
+# Inicializa Firebase com tratamento de erro
 if not firebase_admin._apps:
-    cred_dict = dict(st.secrets["firebase"])
-    cred = credentials.Certificate(cred_dict)
-    firebase_admin.initialize_app(cred)
+    try:
+        cred_dict = dict(st.secrets["firebase"])
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        st.success("✅ Firebase conectado com sucesso!")
+    except Exception as e:
+        st.error(f"❌ Erro ao conectar Firebase: {str(e)}")
+        st.stop()
 
-db = firestore.client()
+try:
+    db = firestore.client()
+except Exception as e:
+    st.error(f"❌ Erro ao conectar Firestore: {str(e)}")
+    st.stop()
 
 BLOCOS = {
     "Cadastro": ["Empresa", "Proprietario"],
@@ -19,14 +28,28 @@ BLOCOS = {
 
 @st.cache_data(ttl=60)
 def get_documents_from_collection(collection_name):
-    docs = db.collection(collection_name).stream()
-    return [doc.to_dict() | {"_id": doc.id} for doc in docs]
+    try:
+        docs = db.collection(collection_name).stream()
+        return [doc.to_dict() | {"_id": doc.id} for doc in docs]
+    except Exception as e:
+        st.error(f"Erro ao buscar documentos da coleção '{collection_name}': {str(e)}")
+        return []
 
 def update_document(collection, doc_id, updated_data):
-    db.collection(collection).document(doc_id).set(updated_data)
+    try:
+        db.collection(collection).document(doc_id).set(updated_data)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao atualizar documento: {str(e)}")
+        return False
 
 def delete_document(collection, doc_id):
-    db.collection(collection).document(doc_id).delete()
+    try:
+        db.collection(collection).document(doc_id).delete()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao excluir documento: {str(e)}")
+        return False
 
 st.set_page_config(page_title="Diário de Obra", layout="wide", page_icon="🏗️")
 st.title("Diário de Obra - Gestão")
@@ -37,7 +60,9 @@ colecoes_do_bloco = BLOCOS[bloco]
 colecao_selecionada = st.selectbox("Item do registro:", colecoes_do_bloco)
 st.header(f"📂 Item do registro: {colecao_selecionada}")
 
-documents = get_documents_from_collection(colecao_selecionada)
+# Adicionar indicador de carregamento
+with st.spinner(f"Carregando documentos de {colecao_selecionada}..."):
+    documents = get_documents_from_collection(colecao_selecionada)
 
 if documents:
     st.markdown(f"**Total de documentos:** {len(documents)}")
@@ -96,19 +121,28 @@ if documents:
                 col_edit, col_del, col_save = st.columns(3)
                 with col_edit:
                     if st.button("Atualizar", key=f"update_{doc['_id']}"):
-                        update_document(colecao_selecionada, doc["_id"], edited_data)
-                        st.success("Documento atualizado!")
-                        st.experimental_rerun()
+                        if update_document(colecao_selecionada, doc["_id"], edited_data):
+                            st.success("Documento atualizado!")
+                            st.rerun()  # FIXED: Changed from st.experimental_rerun()
 
                 with col_del:
                     if st.button("Excluir", key=f"delete_{doc['_id']}"):
-                        delete_document(colecao_selecionada, doc["_id"])
-                        st.warning("Documento excluído!")
-                        st.experimental_rerun()
+                        if delete_document(colecao_selecionada, doc["_id"]):
+                            st.warning("Documento excluído!")
+                            st.rerun()  # FIXED: Changed from st.experimental_rerun()
 
     with st.expander("📊 Tabela de dados (com busca)"):
-        df = pd.DataFrame(documents).drop(columns="_id", errors="ignore")
-        st.dataframe(df, use_container_width=True)
+        if documents:  # Additional safety check
+            df = pd.DataFrame(documents).drop(columns="_id", errors="ignore")
+            st.dataframe(df, use_container_width=True)
 
 else:
     st.warning("Nenhum documento encontrado neste tipo de registro.")
+    
+# Debug info (remove in production)
+if st.sidebar.checkbox("🔧 Debug Info"):
+    st.sidebar.write("Firebase Apps:", len(firebase_admin._apps))
+    try:
+        st.sidebar.write("Firestore client:", type(db).__name__)
+    except:
+        st.sidebar.write("Firestore client: Not initialized")
