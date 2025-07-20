@@ -5,7 +5,8 @@ import pandas as pd
 
 # Inicializa Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("key.json")
+    cred_dict = dict(st.secrets["firebase"])
+    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()

@@ -3,9 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# C extensions
+# 
 *.so
-
+.streamlit/secrets.toml
 key.json
 
 # Distribution / packaging
