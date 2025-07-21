@@ -20,8 +20,8 @@ st.markdown("""
 
 # DEFINIÇÃO DOS BLOCOS E COLEÇÕES
 BLOCOS = {
-    "Cadastro": ["Empresa", "Proprietário"],
-    "Obra": ["Mão de Obra"],
+    "Corporativo": ["Contrato","Empresa", "Proprietário"],
+    "Jornada de Trabalho": ["Obra", "Mão de Obra"],
     "Dados Gerais": ["Diário", "Equipamentos", "Materiais", "Plano de Aproveitamento", "Resíduos", "Uso"],
 }
 
@@ -52,7 +52,18 @@ st.markdown(f"<h3 style='text-align: center;'>📂 Item do registro selecionado:
 
 # Dicionário com os campos por coleção
 CAMPOS_REGISTRO = {
-    "Empresa": ["CNPJ", "Endereço"],
+    "Contrato": ["Cont_CodEmpresa", "Cont_CodObra", "Cont_CodProp"],
+    "Empresa": ["CodEmpresa", "CNPJ"],
+    "Proprietário": ["CodProp", "NomeProp", "CPF"],
+    "Obra": ["CodObra", "Endereco", "Fotos", "Data_inicio", "Data_previsao"],
+    "Mão de Obra": ["CodFuncionario", "Foto", "Salario", "RG", "CPF", "Cargo", "Nome"],
+    "Diário": ["CodDiario", "Endereco", "Fotos", "Obs_Geral", "Obs_Func", "Data", "Clima"],
+    "Equipamentos": ["CodEquipamento", "Tipo", "Marca"],
+    "Materiais": ["CodMaterial", "Tipo", "Quantidade", "Unidade", "Custo"],
+    "Plano de Aproveitamento":["CodPlano", "Descricao", "Emp_Empresa",],
+    "Resíduos": ["Classe", "PA_CodPlano"],
+    "Uso": ["Uso_CodMaterial", "Uso_Classe", "Inicial", "Subsequente"]
+    
 }
 
 # Seção para adicionar novo documento
