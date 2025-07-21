@@ -3,6 +3,14 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
 
+# Inicializa Firebase
+if not firebase_admin._apps:
+    cred = credentials.Certificate("key.json")
+    firebase_admin.initialize_app(cred)
+
+# Conecta com o Firestore
+db = firestore.client()
+
 # Inicializa Firebase com tratamento de erro
 if not firebase_admin._apps:
     try:
