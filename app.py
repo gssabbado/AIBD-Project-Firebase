@@ -1,7 +1,9 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, initialize_app
 import pandas as pd
+import uuid
+import os
 
 # Inicializa Firebase
 if not firebase_admin._apps:
@@ -11,29 +13,77 @@ if not firebase_admin._apps:
 # Conecta com o Firestore
 db = firestore.client()
 
-# Inicializa Firebase com tratamento de erro
+# Inicializa Firebase
 if not firebase_admin._apps:
-    try:
-        cred_dict = dict(st.secrets["firebase"])
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred)
-        st.success("✅ Firebase conectado com sucesso!")
-    except Exception as e:
-        st.error(f"❌ Erro ao conectar Firebase: {str(e)}")
-        st.stop()
+    cred = credentials.Certificate("key.json")
+    firebase_admin.initialize_app(cred)
 
-try:
-    db = firestore.client()
-except Exception as e:
-    st.error(f"❌ Erro ao conectar Firestore: {str(e)}")
-    st.stop()
+# Conecta com o Firestore
+db = firestore.client()
 
+# TÍTULO CENTRALIZADO
+st.markdown("""
+    <h1 style='text-align: center; color: #333; font-size: 36px;'>🏗️ Diário de Obra - Gestão</h1>
+""", unsafe_allow_html=True)
+
+# DEFINIÇÃO DOS BLOCOS E COLEÇÕES
 BLOCOS = {
-    "Cadastro": ["Empresa", "Proprietario"],
-    "Obra": ["Empresa", "Mao_de_Obra", "Proprietario"],
-    "Diário": ["Equipamentos", "Materiais", "Plano_de_Aproveitamento", "Residuos", "Uso"],
+    "Cadastro": ["Empresa", "Proprietário"],
+    "Obra": ["Mão de Obra"],
+    "Dados Gerais": ["Diário", "Equipamentos", "Materiais", "Plano de Aproveitamento", "Resíduos", "Uso"],
 }
 
+# MENU HORIZONTAL COM ESTILO PERSONALIZADO
+st.markdown("""
+    <style>
+        .menu-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        .menu-container select {
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+menu_cols = st.columns([1, 1])
+with menu_cols[0]:
+    bloco = st.selectbox("Registros:", list(BLOCOS.keys()), key="menu_bloco")
+with menu_cols[1]:
+    colecoes_do_bloco = BLOCOS[bloco]
+    colecao_selecionada = st.selectbox("Itens de registro:", colecoes_do_bloco, key="menu_colecao")
+
+st.markdown(f"<h3 style='text-align: center;'>📂 Item do registro selecionado: <code>{colecao_selecionada}</code></h3>", unsafe_allow_html=True)
+
+# Dicionário com os campos por coleção
+CAMPOS_REGISTRO = {
+    "Empresa": ["CNPJ", "Endereço"],
+}
+
+# Seção para adicionar novo documento
+with st.expander("➕ Adicionar novo documento", expanded=False):
+    campos = CAMPOS_REGISTRO.get(colecao_selecionada, [])
+    novo_doc = {}
+
+    with st.form(key=f"form_{colecao_selecionada}"):
+        st.markdown(f"### Novo registro em **{colecao_selecionada}**")
+        for campo in campos:
+            novo_doc[campo] = st.text_input(f"{campo.capitalize()}")
+
+        submitted = st.form_submit_button("💾 Salvar documento")
+        if submitted:
+            try:
+                db.collection(colecao_selecionada).add(novo_doc)
+                st.success("✅ Documento adicionado com sucesso!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Erro ao salvar documento: {str(e)}")
+
+
+# FUNÇÕES FIRESTORE
 @st.cache_data(ttl=60)
 def get_documents_from_collection(collection_name):
     try:
@@ -59,56 +109,37 @@ def delete_document(collection, doc_id):
         st.error(f"Erro ao excluir documento: {str(e)}")
         return False
 
-st.set_page_config(page_title="Diário de Obra", layout="wide", page_icon="🏗️")
-st.title("Diário de Obra - Gestão")
-
-bloco = st.sidebar.radio("Selecione o bloco:", list(BLOCOS.keys()))
-colecoes_do_bloco = BLOCOS[bloco]
-
-colecao_selecionada = st.selectbox("Item do registro:", colecoes_do_bloco)
-st.header(f"📂 Item do registro: {colecao_selecionada}")
-
-# Adicionar indicador de carregamento
+# CARREGAMENTO DOS DOCUMENTOS
 with st.spinner(f"Carregando documentos de {colecao_selecionada}..."):
     documents = get_documents_from_collection(colecao_selecionada)
 
 if documents:
     st.markdown(f"**Total de documentos:** {len(documents)}")
-
     fields = [k for k in documents[0].keys() if k != "_id"]
 
-    with st.expander("📄 Visualizar documentos"):
+    # VISUALIZAÇÃO E TABELA LADO A LADO
+    col_vis, col_tab = st.columns([2, 1])  # largura: 2/3 para docs, 1/3 para tabela
+
+    with col_vis.expander("📄 Visualização dos documentos", expanded=True):
         search_term = st.text_input("🔍 Filtrar documentos por palavra-chave:")
         filtered_docs = [
             doc for doc in documents
             if any(search_term.lower() in str(value).lower() for value in doc.values())
         ] if search_term else documents
 
-        sort_col1, sort_col2 = st.columns([2, 1])
-        with sort_col1:
-            sort_field = st.selectbox("Ordenar por campo:", fields, key="sort_field")
-        with sort_col2:
-            sort_order = st.radio("Ordem:", ["Crescente", "Decrescente"], horizontal=True, key="sort_order")
-
-        filtered_docs.sort(
-            key=lambda x: str(x.get(sort_field, "")),
-            reverse=(sort_order == "Decrescente")
-        )
-
-        # Paginação com botões
+        # Paginação
         page_size = 10
         total = len(filtered_docs)
         max_page = max((total - 1) // page_size + 1, 1)
-
         if 'page' not in st.session_state:
             st.session_state.page = 1
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col1:
-            if st.button("⬅️ Anterior") and st.session_state.page > 1:
+            if st.button("← Anterior") and st.session_state.page > 1:
                 st.session_state.page -= 1
         with col3:
-            if st.button("Próximo ➡️") and st.session_state.page < max_page:
+            if st.button("Próximo →") and st.session_state.page < max_page:
                 st.session_state.page += 1
         with col2:
             st.markdown(f"**Página {st.session_state.page} de {max_page}**")
@@ -122,35 +153,24 @@ if documents:
                 for key, value in doc.items():
                     if key == "_id":
                         continue
-                    # Input para edição (string)
                     novo_valor = st.text_input(f"{key}:", value=str(value), key=f"{doc['_id']}_{key}")
                     edited_data[key] = novo_valor
 
-                col_edit, col_del, col_save = st.columns(3)
+                col_edit, col_del = st.columns(2)
                 with col_edit:
                     if st.button("Atualizar", key=f"update_{doc['_id']}"):
                         if update_document(colecao_selecionada, doc["_id"], edited_data):
                             st.success("Documento atualizado!")
-                            st.rerun()  # FIXED: Changed from st.experimental_rerun()
+                            st.rerun()
 
                 with col_del:
                     if st.button("Excluir", key=f"delete_{doc['_id']}"):
                         if delete_document(colecao_selecionada, doc["_id"]):
                             st.warning("Documento excluído!")
-                            st.rerun()  # FIXED: Changed from st.experimental_rerun()
+                            st.rerun()
 
-    with st.expander("📊 Tabela de dados (com busca)"):
-        if documents:  # Additional safety check
-            df = pd.DataFrame(documents).drop(columns="_id", errors="ignore")
-            st.dataframe(df, use_container_width=True)
-
+    with col_tab.expander("📊 Tabela de dados", expanded=True):
+        df = pd.DataFrame(filtered_docs).drop(columns="_id", errors="ignore")
+        st.dataframe(df, use_container_width=True)
 else:
     st.warning("Nenhum documento encontrado neste tipo de registro.")
-    
-# Debug info (remove in production)
-if st.sidebar.checkbox("🔧 Debug Info"):
-    st.sidebar.write("Firebase Apps:", len(firebase_admin._apps))
-    try:
-        st.sidebar.write("Firestore client:", type(db).__name__)
-    except:
-        st.sidebar.write("Firestore client: Not initialized")
