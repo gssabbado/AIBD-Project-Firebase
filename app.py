@@ -168,10 +168,15 @@ if documents:
                             st.rerun()
 
                 with col_del:
-                    if st.button("Excluir", key=f"delete_{doc['_id']}"):
-                        if delete_document(colecao_selecionada, doc["_id"]):
-                            st.warning("Documento excluído!")
-                            st.rerun()
+                    confirm = st.checkbox(f"Confirmar exclusão", key=f"check_{doc['_id']}")
+                    if st.button("❌ Excluir", key=f"delete_{doc['_id']}"):
+                        if confirm:
+                            if delete_document(colecao_selecionada, doc["_id"]):
+                                st.success("Documento excluído!")
+                                st.rerun()
+                    else:
+                        st.warning("⚠️ Marque a caixa de confirmação antes de excluir.")
+
 
     with col_tab.expander("📊 Tabela de dados", expanded=True):
         df = pd.DataFrame(filtered_docs).drop(columns="_id", errors="ignore")
