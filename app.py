@@ -5,28 +5,27 @@ import pandas as pd
 import uuid
 import os
 
-# Inicializa Firebase
+# inicializando e conectando com o Firebase
 if not firebase_admin._apps:
-    cred_dict = dict(st.secrets["firebase"])
+    cred_dict = dict(st.secrets["key.json"])
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
 
-# Conecta com o Firestore
 db = firestore.client()
 
-# TÍTULO CENTRALIZADO
+# título da página (centro e tamanho da fonte)
 st.markdown("""
     <h1 style='text-align: center; color: #333; font-size: 36px;'>🏗️ Diário de Obra - Gestão</h1>
 """, unsafe_allow_html=True)
 
-# DEFINIÇÃO DOS BLOCOS E COLEÇÕES
+# registros disponíveis para selecionar e os tipos
 BLOCOS = {
     "Corporativo": ["Contrato","Empresa", "Proprietário"],
     "Jornada de Trabalho": ["Obra", "Mão de Obra"],
     "Dados Gerais": ["Diário", "Equipamentos", "Materiais", "Plano de Aproveitamento", "Resíduos", "Uso"],
 }
 
-# MENU HORIZONTAL COM ESTILO PERSONALIZADO
+# menu com dropdown de cada ação
 st.markdown("""
     <style>
         .menu-container {
@@ -44,14 +43,14 @@ st.markdown("""
 
 menu_cols = st.columns([1, 1])
 with menu_cols[0]:
-    bloco = st.selectbox("Registros:", list(BLOCOS.keys()), key="menu_bloco")
+    bloco = st.selectbox("Registros:", list(BLOCOS.keys()), key="menu_bloco") # ação da seleção de registro
 with menu_cols[1]:
     colecoes_do_bloco = BLOCOS[bloco]
-    colecao_selecionada = st.selectbox("Itens de registro:", colecoes_do_bloco, key="menu_colecao")
+    colecao_selecionada = st.selectbox("Itens de registro:", colecoes_do_bloco, key="menu_colecao") # ação da seleção de tipo de registro
 
-st.markdown(f"<h3 style='text-align: center;'>📂 Item do registro selecionado: <code>{colecao_selecionada}</code></h3>", unsafe_allow_html=True)
+st.markdown(f"<h3 style='text-align: center;'>📂 Item do registro selecionado: <code>{colecao_selecionada}</code></h3>", unsafe_allow_html=True) # indicador do que foi selecionado para visualizar 
 
-# Dicionário com os campos por coleção
+# itens de registros e as respectivas informações de acordo com o que é fornecido no banco
 CAMPOS_REGISTRO = {
     "Contrato": ["Cont_CodEmpresa", "Cont_CodObra", "Cont_CodProp"],
     "Empresa": ["CodEmpresa", "CNPJ"],
@@ -67,7 +66,7 @@ CAMPOS_REGISTRO = {
     
 }
 
-# Seção para adicionar novo documento
+# ação para adicionar novo documento
 with st.expander("➕ Adicionar novo documento", expanded=False):
     campos = CAMPOS_REGISTRO.get(colecao_selecionada, [])
     novo_doc = {}
@@ -87,7 +86,7 @@ with st.expander("➕ Adicionar novo documento", expanded=False):
                 st.error(f"❌ Erro ao salvar documento: {str(e)}")
 
 
-# FUNÇÕES FIRESTORE
+# função do firestone
 @st.cache_data(ttl=60)
 def get_documents_from_collection(collection_name):
     try:
@@ -95,7 +94,7 @@ def get_documents_from_collection(collection_name):
         return [doc.to_dict() | {"_id": doc.id} for doc in docs]
     except Exception as e:
         st.error(f"Erro ao buscar documentos da coleção '{collection_name}': {str(e)}")
-        return []
+        return [] # acessar documentos dos registros
 
 def update_document(collection, doc_id, updated_data):
     try:
@@ -103,7 +102,7 @@ def update_document(collection, doc_id, updated_data):
         return True
     except Exception as e:
         st.error(f"Erro ao atualizar documento: {str(e)}")
-        return False
+        return False # atualizar documento
 
 def delete_document(collection, doc_id):
     try:
@@ -111,9 +110,9 @@ def delete_document(collection, doc_id):
         return True
     except Exception as e:
         st.error(f"Erro ao excluir documento: {str(e)}")
-        return False
+        return False # deletar documento
 
-# CARREGAMENTO DOS DOCUMENTOS
+# acessar dados do banco
 with st.spinner(f"Carregando documentos de {colecao_selecionada}..."):
     documents = get_documents_from_collection(colecao_selecionada)
 
@@ -121,7 +120,7 @@ if documents:
     st.markdown(f"**Total de documentos:** {len(documents)}")
     fields = [k for k in documents[0].keys() if k != "_id"]
 
-    # VISUALIZAÇÃO E TABELA LADO A LADO
+    # design da visualização dos dados
     col_vis, col_tab = st.columns([2, 1])  # largura: 2/3 para docs, 1/3 para tabela
 
     with col_vis.expander("📄 Visualização dos documentos", expanded=True):
@@ -131,7 +130,7 @@ if documents:
             if any(search_term.lower() in str(value).lower() for value in doc.values())
         ] if search_term else documents
 
-        # Paginação
+        # configurações de paginação
         page_size = 10
         total = len(filtered_docs)
         max_page = max((total - 1) // page_size + 1, 1)
@@ -169,7 +168,7 @@ if documents:
 
                 with col_del:
                     confirm = st.checkbox(f"Confirmar exclusão", key=f"check_{doc['_id']}")
-                    if st.button("❌ Excluir", key=f"delete_{doc['_id']}"):
+                    if st.button("Excluir", key=f"delete_{doc['_id']}"):
                         if confirm:
                             if delete_document(colecao_selecionada, doc["_id"]):
                                 st.success("Documento excluído!")
