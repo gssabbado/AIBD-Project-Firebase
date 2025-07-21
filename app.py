@@ -7,7 +7,7 @@ import os
 
 # inicializando e conectando com o Firebase
 if not firebase_admin._apps:
-    cred_dict = dict(st.secrets["key.json"])
+    cred_dict = dict(st.secrets["firebase"])
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
 
